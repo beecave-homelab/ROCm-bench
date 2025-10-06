@@ -19,3 +19,13 @@ htmlcov/
 .vscode/
 .idea/
 
+# ROCm-bench
+benchmarks/
+!benchmarks/.gitkeep
+coverage/
+coverage.xml
+htmlcov/
+
+# PDM
+pdm.lock
+.pdm-python
