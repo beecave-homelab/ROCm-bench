@@ -105,29 +105,47 @@ require_cmd() {
 # - Prints the command in cyan, runs it, then prints a success tick.
 # - Honors KEEP_GOING to avoid aborting the script on non-zero exit codes.
 # ==============================================================================
-RUFF_COMMON=( )
+RUFF_COMMON=""
 
 run_ruff() {
   # Build a rendered command including common args for visibility
   local rendered=""
+  local args=""
+
+  # Safely handle RUFF_COMMON (for older bash versions)
+  if [[ -n "${RUFF_COMMON}" ]]; then
+    args="${RUFF_COMMON}"
+    rendered="${RUFF_COMMON}"
+  fi
+
+  # Add function arguments (don't quote them as they're already properly formatted)
   local arg
-  for arg in "${RUFF_COMMON[@]}" "$@"; do
-    # shellcheck disable=SC2089
-    rendered+=" $(printf "%q" "${arg}")"
+  for arg in "$@"; do
+    if [[ -n "${args}" ]]; then
+      args="${args} ${arg}"
+    else
+      args="${arg}"
+    fi
+
+    if [[ -n "${rendered}" ]]; then
+      rendered="${rendered} ${arg}"
+    else
+      rendered="${arg}"
+    fi
   done
 
-  echo -e "\n${ARROW} ${CYAN}Running:${NC} ruff check${DIM}${rendered}${NC}"
+  echo -e "\n${ARROW} ${CYAN}Running:${NC} ruff check${DIM} ${rendered}${NC}"
 
   if [[ "${KEEP_GOING}" == true ]]; then
     # Continue even if this pass fails; still show the end marker.
-    if ruff check "${RUFF_COMMON[@]}" "$@"; then
-      echo -e "${CHECK} Completed: ruff check${DIM}${rendered}${NC}"
+    if ruff check ${args}; then
+      echo -e "${CHECK} Completed: ruff check${DIM} ${rendered}${NC}"
     else
-      echo -e "${YELLOW}⚠ Completed with issues:${NC} ruff check${DIM}${rendered}${NC}"
+      echo -e "${YELLOW}⚠ Completed with issues:${NC} ruff check${DIM} ${rendered}${NC}"
     fi
   else
-    ruff check "${RUFF_COMMON[@]}" "$@"
-    echo -e "${CHECK} Completed: ruff check${DIM}${rendered}${NC}"
+    ruff check ${args}
+    echo -e "${CHECK} Completed: ruff check${DIM} ${rendered}${NC}"
   fi
 }
 
@@ -201,7 +219,11 @@ main() {
 
   # Configure common Ruff args
   if [[ "${USE_PREVIEW}" == true ]]; then
-    RUFF_COMMON+=(--preview)
+    if [[ -n "${RUFF_COMMON}" ]]; then
+      RUFF_COMMON="${RUFF_COMMON} --preview"
+    else
+      RUFF_COMMON="--preview"
+    fi
   fi
 
   # Default to current directory if no targets provided
